@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        form { max-width: 400px; margin: auto; }
+        label { display: block; margin-bottom: 0.5em; font-weight: bold; }
+        input, select { width: 100%; padding: 0.5em; margin-bottom: 1em; }
+        button { padding: 0.5em 1em; }
+    </style>
+</head>
+<body>
+    <h1>Settings</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="POST">
+        <label>
+            <input type="checkbox" name="loop_nfc_song" {% if settings.loop_nfc_song %}checked{% endif %}>
+            Loop NFC Song
+        </label>
+
+        <label for="idle_mode">Idle Mode</label>
+        <select name="idle_mode" id="idle_mode">
+            <option value="do_nothing" {% if settings.idle_mode == 'do_nothing' %}selected{% endif %}>Do Nothing</option>
+            <option value="play_random" {% if settings.idle_mode == 'play_random' %}selected{% endif %}>Play Random Songs</option>
+            <option value="play_select" {% if settings.idle_mode == 'play_select' %}selected{% endif %}>Play Selected Songs</option>
+        </select>
+
+        <label for="select_songs">Select Songs for Idle Mode</label>
+        <select name="select_songs" id="select_songs" multiple style="height: 100px;">
+            {% for song in music_files %}
+            <option value="{{ song }}" {% if song in settings.get('select_songs', []) %}selected{% endif %}>{{ song }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Save Settings</button>
+    </form>
+    <a href="{{ url_for('index') }}">Back to Home</a>
+</body>
+</html>

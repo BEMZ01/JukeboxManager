@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NFC Tag Registration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        nav { margin-bottom: 1.5em; }
+        nav a { margin-right: 1em; text-decoration: none; color: #337ab7; }
+        nav a:hover { text-decoration: underline; }
+        button { margin-left: 0.5em; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 0.5em; }
+    </style>
+</head>
+<body>
+    <h1>Register NFC Tag to Song</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <nav>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('bluetooth_panel') }}">Bluetooth Panel</a>
+        <a href="{{ url_for('nfc_register') }}">NFC Tag Registration</a>
+        <a href="{{ url_for('stop_playback') }}">Stop Playback</a>
+        <a href="{{ url_for('manage_music') }}">Manage Music</a>
+        <a href="{{ url_for('settings_panel') }}">Settings</a>
+    </nav>
+    <form method="post">
+        <label for="song">Select Song:</label>
+        <select name="song" id="song" required>
+            {% for song in music_files %}
+            <option value="{{ song }}">{{ song }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Register NFC Tag</button>
+    </form>
+    {# {% if message %} #}
+    {# <p>{{ message }}</p> #}
+    {# {% endif %} #}
+    <h2>Current NFC Mappings</h2>
+    <ul>
+        {% for uid, song in nfc_map.items() %}
+        <li>{{ uid }}: {{ song }}
+            <form method="POST" action="{{ url_for('delete_nfc_mapping', uid=uid) }}" style="display: inline;">
+                <button type="submit">Delete</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+

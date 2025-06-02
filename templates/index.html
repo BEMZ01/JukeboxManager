@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Jukebox Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        nav { margin-bottom: 1.5em; }
+        nav a { margin-right: 1em; text-decoration: none; color: #337ab7; }
+        nav a:hover { text-decoration: underline; }
+        button { margin-left: 0.5em; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 0.5em; }
+    </style>
+    <script>
+        function updateCurrentPlaying() {
+            fetch('/current_status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusElement = document.getElementById('current-playing-status');
+                    if (data.current_playing) {
+                        statusElement.textContent = `Currently Playing: ${data.current_playing}`;
+                    } else {
+                        statusElement.textContent = 'No song is currently playing.';
+                    }
+                });
+        }
+
+        setInterval(updateCurrentPlaying, 5000); // Update every 5 seconds
+
+        function filterSongs() {
+            const query = document.getElementById('search-bar').value.toLowerCase();
+            const songs = document.querySelectorAll('.song-item');
+
+            songs.forEach(song => {
+                const songName = song.textContent.toLowerCase();
+                if (songName.includes(query)) {
+                    song.style.display = '';
+                } else {
+                    song.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <h1>Jukebox Manager</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <p id="current-playing-status">No song is currently playing.</p>
+    <input type="text" id="search-bar" placeholder="Search songs..." oninput="filterSongs()" style="margin-bottom: 1em; width: 100%; padding: 0.5em;">
+    <nav>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('bluetooth_panel') }}">Bluetooth Panel</a>
+        <a href="{{ url_for('nfc_register') }}">NFC Tag Registration</a>
+        <a href="{{ url_for('stop_playback') }}">Stop Playback</a>
+        <a href="{{ url_for('manage_music') }}">Manage Music</a>
+        <a href="{{ url_for('settings_panel') }}">Settings</a>
+    </nav>
+    <div>
+        <strong>Bluetooth Status:</strong> {{ bluetooth_status }}
+    </div>
+    <h2>Music Files</h2>
+    <ul>
+        {% for file in music_files %}
+            <li class="song-item">
+                {{ file }}
+                <a href="{{ url_for('play', filename=file) }}"><button>Play</button></a>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+

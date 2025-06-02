@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bluetooth Panel</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        nav { margin-bottom: 1.5em; }
+        nav a { margin-right: 1em; text-decoration: none; color: #337ab7; }
+        nav a:hover { text-decoration: underline; }
+        button { margin-left: 0.5em; }
+        ul { list-style: none; padding: 0; }
+        li { margin-bottom: 0.5em; }
+        .enabled { color: green; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Bluetooth Panel</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <nav>
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('bluetooth_panel') }}">Bluetooth Panel</a>
+        <a href="{{ url_for('nfc_register') }}">NFC Tag Registration</a>
+        <a href="{{ url_for('stop_playback') }}">Stop Playback</a>
+        <a href="{{ url_for('manage_music') }}">Manage Music</a>
+        <a href="{{ url_for('settings_panel') }}">Settings</a>
+    </nav>
+    <button onclick="scanDevices()">Scan for Devices</button>
+    <div id="status-box">
+        <h2>Currently Connected Devices</h2>
+        <ul id="connected-devices-list">
+            <!-- Will be filled by JS -->
+        </ul>
+    </div>
+    <div id="scan-results"></div>
+    <h2>Auto-Connect Devices</h2>
+    <ul>
+        {% for mac in auto_connect %}
+            <li><a href="/bluetooth/info/{{ mac }}">{{ mac }}</a></li>
+        {% endfor %}
+    </ul>
+    <a href="/">Back to Jukebox</a>
+    <script>
+        async function scanDevices() {
+            document.getElementById('scan-results').innerHTML = 'Scanning...';
+            const res = await fetch('/bluetooth/scan');
+            const data = await res.json();
+            if (data.devices) {
+                let html = '<ul>';
+                for (const dev of data.devices) {
+                    html += `<li>${dev.name} (${dev.mac})
+                        <a href='/bluetooth/pair/${dev.mac}'>Pair</a>
+                        <a href='/bluetooth/connect/${dev.mac}'>Connect</a>
+                        <a href='/bluetooth/disconnect/${dev.mac}'>Disconnect</a>
+                        <button onclick=\"toggleAutoConnect('${dev.mac}', this)\" class='autoconn-btn'>Auto-Connect</button>
+                        <button onclick=\"saveCurrentDevice('${dev.mac}', this)\">Set as Current Device</button>
+                    </li>`;
+                }
+                html += '</ul>';
+                document.getElementById('scan-results').innerHTML = html;
+                // After rendering, update auto-connect button states
+                updateAutoConnectButtons();
+            } else {
+                document.getElementById('scan-results').innerHTML = 'No devices found or error.';
+            }
+        }
+        async function toggleAutoConnect(mac, btn) {
+            if (btn.classList.contains('enabled')) {
+                await fetch(`/bluetooth/autoconnect/${mac}`, {method: 'DELETE'});
+                btn.classList.remove('enabled');
+                btn.textContent = 'Auto-Connect';
+            } else {
+                await fetch(`/bluetooth/autoconnect/${mac}`, {method: 'POST'});
+                btn.classList.add('enabled');
+                btn.textContent = 'Auto-Connect ✓';
+            }
+        }
+        async function saveCurrentDevice(mac, btn) {
+            await fetch(`/bluetooth/save_current/${mac}`);
+            btn.textContent = 'Current Device ✓';
+        }
+        function updateAutoConnectButtons() {
+            fetch('/bluetooth')
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const autoConnectList = Array.from(doc.querySelectorAll('ul'))[0];
+                    if (!autoConnectList) return;
+                    const autoConnectMacs = Array.from(autoConnectList.querySelectorAll('li')).map(li => li.textContent.trim());
+                    document.querySelectorAll('.autoconn-btn').forEach(btn => {
+                        const mac = btn.getAttribute('onclick').match(/'([^']+)'/)[1];
+                        if (autoConnectMacs.includes(mac)) {
+                            btn.classList.add('enabled');
+                            btn.textContent = 'Auto-Connect ✓';
+                        } else {
+                            btn.classList.remove('enabled');
+                            btn.textContent = 'Auto-Connect';
+                        }
+                    });
+                });
+        }
+        async function fetchConnectedDevices() {
+            const res = await fetch('/bluetooth/connected');
+            const data = await res.json();
+            const list = document.getElementById('connected-devices-list');
+            list.innerHTML = '';
+            if (data.devices && data.devices.length > 0) {
+                for (const dev of data.devices) {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="/bluetooth/info/${dev.mac}">${dev.name} (${dev.mac})</a>`;
+                    list.appendChild(li);
+                }
+            } else {
+                const li = document.createElement('li');
+                li.textContent = 'No devices connected.';
+                list.appendChild(li);
+            }
+        }
+        window.onload = function() {
+            fetchConnectedDevices();
+        };
+    </script>
+</body>
+</html>
+

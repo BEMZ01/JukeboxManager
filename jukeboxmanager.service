@@ -1,0 +1,17 @@
+[Unit]
+Description=JukeboxManager Flask Service
+After=network-online.target bluetooth.service
+Wants=network-online.target bluetooth.service
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/JukeboxManager
+ExecStart=/bin/bash /home/user/JukeboxManager/jukebox_start.sh
+Restart=on-failure
+Environment="XDG_RUNTIME_DIR=/run/user/1001"
+Environment="PULSE_SERVER=unix:/run/user/1001/pulse/native"
+PAMName=login
+
+[Install]
+WantedBy=multi-user.target
